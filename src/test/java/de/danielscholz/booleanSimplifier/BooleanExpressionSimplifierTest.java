@@ -66,6 +66,7 @@ public class BooleanExpressionSimplifierTest {
         test("!(3 < 4)", "3 >= 4");
         test("!(3 < 4) && true", "3 >= 4");
         test("!(3 < 4) && (3 == 3)", "3 >= 4");
+        test("!(a != null ? a.id <= 0 : true)", "a != null && a.id > 0");
         test("!(a != null ? a.getId() <= 0 : true)", "a != null && a.getId() > 0");
 
         test("x ? !true : true ? x : z ", "false");
