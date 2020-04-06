@@ -9,7 +9,7 @@ class Rule @JvmOverloads constructor(
         val expr: Expression,
         val result: Expression,
         val isOptional: Boolean = false,
-        val isMatchUnsharp: Boolean = false) {
+        val isFuzzyMatch: Boolean = false) {
 
     override fun toString(): String {
         return "$expr -> $result"

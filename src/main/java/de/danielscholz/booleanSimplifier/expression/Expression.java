@@ -16,42 +16,41 @@ public abstract class Expression implements Serializable {
     private int complexity = -1;
 
     /**
-     * Wendet die Regel auf diesen Ausdruck an. Wenn die Regel passt, wird der geänderte Ausdruck zurück geliefert. Sonst
-     * wird die Regel auf die Kinder angewendet.
+     * Applies the rule to this expression. If the rule matches, the changed expression is returned.
+     * Otherwise, the rule is applied to the children.
      */
     public final Expression apply(Rule rule) {
         Expression newExpression = applyToThis(rule);
         if (newExpression != this) {
             return newExpression;
         }
-        return applyToChilds(rule);
+        return applyToChildren(rule);
     }
 
     /**
-     * Wendet die Regel nur auf genau diesen Ausdrucks und nicht auf die Kindelemente an.
+     * Applies the rule only to this exact expression and not to the child elements.
      */
     public final Expression applyToThis(Rule rule) {
-        Map<String, Expression> vars = matches(rule.getExpr(), false, rule.isMatchUnsharp());
+        Map<String, Expression> vars = matches(rule.getExpr(), false, rule.isFuzzyMatch());
         if (vars != null) {
-            return rule.getResult().applyMatch(vars).removeUnnecessaryParenthesis();
+            return rule.getResult().applyMatch(vars).removeUnnecessaryParentheses();
         }
         return this;
     }
 
     /**
-     * Wendet die Regel auf die Kindelemente an.
+     * Applies the rule to the child elements.
      */
-    protected abstract Expression applyToChilds(Rule rule);
+    protected abstract Expression applyToChildren(Rule rule);
 
     /**
-     * Testet, ob der Ausdruck rule zu diesem Ausdruck passt. Falls ja, wird eine Map mit den konkreten Werten für die
-     * Variablen aus dem Ausdruck rule zurück gegeben. Ist in rule keine Variable enthalten, wird eine leere Map zurück
-     * geliefert.
+     * Tests if the expression 'rule' matches this expression. If yes, a map with the concrete values for the variables
+     * from the expression 'rule' is returned. If no variable is contained in 'rule', an empty map is returned.
      */
-    protected abstract Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp);
+    protected abstract Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch);
 
     /**
-     * Wendet auf diese Rule-Expression die Variablen-Ersetzung an, die in der Map hinterlegt ist.
+     * Applies variable replacement to this expression, which is stored in the map 'vars'
      */
     protected abstract Expression applyMatch(Map<String, Expression> vars);
 
@@ -66,15 +65,15 @@ public abstract class Expression implements Serializable {
     }
 
     /**
-     * Entfernt unnötige Klammerausdrücke von den einzelnen Kindausdrücken dieses Ausdrucks.
+     * Removes unnecessary parentheses from each child expression of this expression.
      */
-    public abstract Expression removeUnnecessaryParenthesis();
+    public abstract Expression removeUnnecessaryParentheses();
 
     /**
-     * Entfernt unnötige Klammern um den Kindausdruck.
+     * Removes unnecessary parentheses around the child expression.
      */
-    protected final Expression removeUnnecessaryParenthesisIntern(Expression child, int pos) {
-        Expression child_ = child.removeUnnecessaryParenthesis();
+    protected final Expression removeUnnecessaryParenthesesIntern(Expression child, int pos) {
+        Expression child_ = child.removeUnnecessaryParentheses();
         if (child_ instanceof ParenthesisExpression) {
             Expression childChild = ((ParenthesisExpression) child_).getChild();
             if (!needParenthesis(childChild, pos)) {
@@ -85,7 +84,7 @@ public abstract class Expression implements Serializable {
     }
 
     /**
-     * Fügt bei Bedarf eine Klammer um den Kindausdruck hinzu.
+     * Adds a parenthesis around the child expression if necessary.
      */
     protected final Expression addNecessaryParenthesisIntern(Expression child, int pos) {
         if (needParenthesis(child, pos)) {
@@ -95,16 +94,16 @@ public abstract class Expression implements Serializable {
     }
 
     /**
-     * Werden Klammern benötigt, wenn der Kind-Ausdruck child an pos in diesem Ausdruck gesetzt wird?
+     * Is a parenthesis needed if the child expression is set to position pos in this expression?
      */
     protected boolean needParenthesis(Expression child, int pos) {
-        if (getPrecendence() > child.getPrecendence()) {
+        if (getPrecedence() > child.getPrecedence()) {
             return false;
-        } else if (getPrecendence() == child.getPrecendence()) {
-            if (getPrecendence() == Type.or.getPrecendence()
-                    || getPrecendence() == Type.and.getPrecendence()
-                    || getPrecendence() == NotExpression.PRECENDENCE
-                    || getPrecendence() == ParenthesisExpression.PRECENDENCE) {
+        } else if (getPrecedence() == child.getPrecedence()) {
+            if (getPrecedence() == Type.or.getPrecedence()
+                    || getPrecedence() == Type.and.getPrecedence()
+                    || getPrecedence() == NotExpression.PRECEDENCE
+                    || getPrecedence() == ParenthesisExpression.PRECEDENCE) {
                 return false;
             }
         }
@@ -112,22 +111,22 @@ public abstract class Expression implements Serializable {
     }
 
     /**
-     * Ist dieser rule-Ausdruck endweder 'a', 'b' oder 'c'?
+     * is this rule expression an 'a', 'b' or 'c'?
      */
     protected boolean isAtomicVar() {
         return false;
     }
 
     /**
-     * Ist dieser rule-Ausdruck ein 's'
+     * is this rule expression an 's'
      */
     protected boolean isAtomicVarS() {
         return false;
     }
 
-    protected abstract int getPrecendence();
+    protected abstract int getPrecedence();
 
-    public Expression flipSides() {
+    public Expression invertSides() {
         return this;
     }
 
@@ -141,8 +140,8 @@ public abstract class Expression implements Serializable {
     protected abstract int getComplexityIntern();
 
     /**
-     * Vereinigt zwei Mengen von Variablen, die bei zwei matchings entstanden sind. Wenn eine Variable in beiden Maps
-     * vorhanden ist, so muss der Wert dieser Variablen gleich sein. Ansonsten wird null zurück geliefert.
+     * Combines two sets of variables created by two matches. If a variable is present in both maps, the value of this
+     * variable must be equal. Otherwise null will be returned.
      */
     protected Map<String, Expression> joinVars(Map<String, Expression> vars1, Map<String, Expression> vars2) {
         if (vars1 != null && vars2 != null) {
@@ -155,7 +154,7 @@ public abstract class Expression implements Serializable {
                 if (result.get(entry.getKey()).equals(entry.getValue())) {
                     continue;
                 }
-                // da der Wert dieser Variable unterschiedlich ist, wird null zurück geliefert.
+                // because the value of this variable is different, null is returned
                 return null;
             }
             return result;

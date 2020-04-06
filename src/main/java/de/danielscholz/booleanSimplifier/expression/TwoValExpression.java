@@ -25,15 +25,15 @@ public class TwoValExpression extends Expression {
         ;
 
         private final String op;
-        private final int precendence;
+        private final int precedence;
 
-        Type(String str, int precendence) {
+        Type(String str, int precedence) {
             op = str;
-            this.precendence = precendence;
+            this.precedence = precedence;
         }
 
-        public int getPrecendence() {
-            return precendence;
+        public int getPrecedence() {
+            return precedence;
         }
 
         @Override
@@ -53,7 +53,7 @@ public class TwoValExpression extends Expression {
     }
 
     @Override
-    protected Expression applyToChilds(Rule rule) {
+    protected Expression applyToChildren(Rule rule) {
         Expression newLeftExpr = leftExpr.apply(rule);
         Expression newRightExpr = rightExpr.apply(rule);
         if (newLeftExpr != leftExpr || newRightExpr != rightExpr) {
@@ -63,20 +63,20 @@ public class TwoValExpression extends Expression {
     }
 
     @Override
-    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp) {
+    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch) {
         Map<String, Expression> vars = matchAtomicVar(rule, invert);
         if (vars != null) return vars;
 
         if (rule.getClass() == getClass()) {
             TwoValExpression twoValExprRule = (TwoValExpression) rule;
             if (twoValExprRule.type == type) {
-                Map<String, Expression> varsLeft = leftExpr.matches(twoValExprRule.leftExpr, invert, matchUnsharp);
+                Map<String, Expression> varsLeft = leftExpr.matches(twoValExprRule.leftExpr, invert, fuzzyMatch);
                 if (varsLeft == null) return null;
-                Map<String, Expression> varsRight = rightExpr.matches(twoValExprRule.rightExpr, invert, matchUnsharp);
+                Map<String, Expression> varsRight = rightExpr.matches(twoValExprRule.rightExpr, invert, fuzzyMatch);
                 return joinVars(varsLeft, varsRight);
             }
-        } else if (matchUnsharp && rule.getClass() == NotExpression.class) {
-            return matches(((NotExpression) rule).getChild(), true, matchUnsharp);
+        } else if (fuzzyMatch && rule.getClass() == NotExpression.class) {
+            return matches(((NotExpression) rule).getChild(), true, fuzzyMatch);
         }
         return null;
     }
@@ -87,9 +87,9 @@ public class TwoValExpression extends Expression {
                 addNecessaryParenthesisIntern(rightExpr.applyMatch(vars), 2));
     }
 
-    public Expression removeUnnecessaryParenthesis() {
-        Expression left = removeUnnecessaryParenthesisIntern(leftExpr, 1);
-        Expression right = removeUnnecessaryParenthesisIntern(rightExpr, 2);
+    public Expression removeUnnecessaryParentheses() {
+        Expression left = removeUnnecessaryParenthesesIntern(leftExpr, 1);
+        Expression right = removeUnnecessaryParenthesesIntern(rightExpr, 2);
         if (left != leftExpr || right != rightExpr) {
             return new TwoValExpression(type, left, right);
         }
@@ -97,13 +97,13 @@ public class TwoValExpression extends Expression {
     }
 
     @Override
-    public int getPrecendence() {
-        return type.getPrecendence();
+    public int getPrecedence() {
+        return type.getPrecedence();
     }
 
     @Override
     protected int getComplexityIntern() {
-        // verkettete && oder || sollen die Komplexität nicht übermäßig erhöhen
+        // chained characters (&& or ||) should not increase complexity excessively, for example a || b || c || d
         if ((type == Type.or || type == Type.and)) {
             if (leftExpr.getClass() == getClass()) {
                 TwoValExpression childExpr = (TwoValExpression) leftExpr;
@@ -122,7 +122,7 @@ public class TwoValExpression extends Expression {
     }
 
     @Override
-    public Expression flipSides() {
+    public Expression invertSides() {
         if (type == Type.and || type == Type.or || type == Type.neq || type == Type.eq) {
             return new TwoValExpression(type, rightExpr, leftExpr);
         }

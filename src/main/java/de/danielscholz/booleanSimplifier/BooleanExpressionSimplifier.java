@@ -23,26 +23,26 @@ public class BooleanExpressionSimplifier {
     private static final List<Rule> finishingRules = new ArrayList<>();
 
     enum RuleOption {
-        FLIP, OPTIONAL, MATCH_UNSHARP
+        ALSO_ADD_INVERTED_RULE, OPTIONAL, FUZZY_MATCH
     }
 
     static {
-        // s bedeutet: true | false | Variable | Methodenaufruf mit boolean-Returnwert
-        // a, b, c bedeuten: Komplexe boolesche Ausdrücke ODER das gleiche wie s
-        rule(" true && a", "a", FLIP);
-        rule("false && a", "false", FLIP);
+        // s means: true | false | variable | method call with boolean result
+        // a, b, c means: Complex boolean expressions | the same as s
+        rule(" true && a", "a", ALSO_ADD_INVERTED_RULE);
+        rule("false && a", "false", ALSO_ADD_INVERTED_RULE);
 
-        rule(" true || a", "true", FLIP);
-        rule("false || a", "a", FLIP);
+        rule(" true || a", "true", ALSO_ADD_INVERTED_RULE);
+        rule("false || a", "a", ALSO_ADD_INVERTED_RULE);
 
         rule(" a  &&  a", "a");
-        rule("!a  &&  a", "false", FLIP);
+        rule("!a  &&  a", "false", ALSO_ADD_INVERTED_RULE);
 
         rule(" a || a", "a");
-        rule("!a || a", "true", FLIP);
+        rule("!a || a", "true", ALSO_ADD_INVERTED_RULE);
 
-        rule("true == false", "false", FLIP);
-        rule("true != false", "true", FLIP);
+        rule("true == false", "false", ALSO_ADD_INVERTED_RULE);
+        rule("true != false", "true", ALSO_ADD_INVERTED_RULE);
 
         rule("a == a", "true");
         rule("a != a", "false");
@@ -62,23 +62,20 @@ public class BooleanExpressionSimplifier {
         rule("!(a >  b)", "a <= b");
         rule("!(a >= b)", "a <  b");
 
-        rule("(!a || b) && a", "a && b", FLIP, MATCH_UNSHARP);
-        rule("( a || b) && !a", "!a && b", FLIP, MATCH_UNSHARP);
-        rule("(b || !a) && a", "a && b", FLIP, MATCH_UNSHARP);
-        rule("(b || a ) && !a", "!a && b", FLIP, MATCH_UNSHARP);
+        rule("(!a || b) && a", "a && b", ALSO_ADD_INVERTED_RULE, FUZZY_MATCH);
+        rule("( a || b) && !a", "!a && b", ALSO_ADD_INVERTED_RULE, FUZZY_MATCH);
+        rule("(b || !a) && a", "a && b", ALSO_ADD_INVERTED_RULE, FUZZY_MATCH);
+        rule("(b || a ) && !a", "!a && b", ALSO_ADD_INVERTED_RULE, FUZZY_MATCH);
 
         rule("a ? b : c", "a && b || !a && c", OPTIONAL);
 
         finishRule("(a)", "a");
-        finishRule("a && b || !a && c", "a ? b : c", FLIP, MATCH_UNSHARP);
+        finishRule("a && b || !a && c", "a ? b : c", ALSO_ADD_INVERTED_RULE, FUZZY_MATCH);
         finishRule("!a ? b : c", "a ? c : b");
     }
 
-    public static void main(String[] args) {
-        String input = "!(true && false || !true == false)";
-        //String input = "(false && true)";
-        Expression expr = simplify(parse(input));
-        System.out.println(expr.toString());
+    public static String simplify(String expr) {
+        return simplify(parse(expr)).toString();
     }
 
     public static Expression simplify(Expression expr) {
@@ -86,10 +83,10 @@ public class BooleanExpressionSimplifier {
     }
 
     public static Expression simplify(Expression expr, boolean applyFinishRules) {
-        Set<Expression> simplified = new TreeSet<>((o1, o2) -> o1.getComplexity() - o2.getComplexity());
+        Set<Expression> simplified = new TreeSet<>(Comparator.comparingInt(Expression::getComplexity));
         while (true) {
             Expression result = expr;
-            expr = expr.removeUnnecessaryParenthesis();
+            expr = expr.removeUnnecessaryParentheses();
             simplified.add(expr);
             //Map<Expression, Rule> matchedRules = new HashMap<>();
             for (Rule rule : rules) {
@@ -106,7 +103,7 @@ public class BooleanExpressionSimplifier {
 
         if (applyFinishRules) {
             for (Rule rule : finishingRules) {
-                expr = expr.applyToThis(rule); // Regeln hier nur Top-Level anwenden
+                expr = expr.applyToThis(rule); // apply rules here only at top level
             }
             simplified.add(expr);
         }
@@ -123,7 +120,7 @@ public class BooleanExpressionSimplifier {
         parser.addErrorListener(new ANTLRErrorListener() {
             @Override
             public void syntaxError(Recognizer<?, ?> recognizer, Object o, int i, int i1, String s, RecognitionException e) {
-                throw new RuntimeException("Fehler im Ausdruck: " + s);
+                throw new RuntimeException("Error in expression: " + s);
             }
 
             @Override
@@ -139,7 +136,7 @@ public class BooleanExpressionSimplifier {
             }
         });
         ParseTree tree = parser.expression(); // begin parsing at init expr
-        //if (!parser.isMatchedEOF()) throw new RuntimeException("Ausdruck wurde nicht vollständig geparst");
+        //if (!parser.isMatchedEOF()) throw new RuntimeException("Expression was not completely parsed");
         // System.out.println(tree.toStringTree(parser)); // print LISP-style tree
         ParseTreeWalker walker = new ParseTreeWalker(); // create standard walker
         BooleanGrammarListenerImpl listener = new BooleanGrammarListenerImpl();
@@ -149,15 +146,15 @@ public class BooleanExpressionSimplifier {
 
     private static void rule(String expr, String result, RuleOption... options) {
         List<RuleOption> types = Arrays.asList(options);
-        rule(expr, result, types.contains(OPTIONAL), types.contains(FLIP), false, types.contains(MATCH_UNSHARP));
+        rule(expr, result, types.contains(OPTIONAL), types.contains(ALSO_ADD_INVERTED_RULE), false, types.contains(FUZZY_MATCH));
     }
 
     private static void finishRule(String expr, String result, RuleOption... options) {
         List<RuleOption> types = Arrays.asList(options);
-        rule(expr, result, false, types.contains(FLIP), true, types.contains(MATCH_UNSHARP));
+        rule(expr, result, false, types.contains(ALSO_ADD_INVERTED_RULE), true, types.contains(FUZZY_MATCH));
     }
 
-    private static void rule(String expr, String result, boolean optional, boolean matcherFlipSides, boolean finishRule, boolean matchUnsharp) {
+    private static void rule(String expr, String result, boolean optional, boolean alsoAddInvertedRule, boolean finishRule, boolean fuzzyMatch) {
         Expression ruleResultExpr;
         if (result.equals("true") || result.equals("false") || result.equals("a")) {
             ruleResultExpr = new AtomicExpression(result);
@@ -166,13 +163,13 @@ public class BooleanExpressionSimplifier {
         }
         Expression ruleExpr = parse(expr);
 
-        Rule rule = new Rule(ruleExpr, ruleResultExpr, optional, matchUnsharp);
+        Rule rule = new Rule(ruleExpr, ruleResultExpr, optional, fuzzyMatch);
         if (finishRule) {
             finishingRules.add(rule);
         } else {
             rules.add(rule);
-            if (matcherFlipSides) {
-                rules.add(new Rule(ruleExpr.flipSides(), ruleResultExpr));
+            if (alsoAddInvertedRule) {
+                rules.add(new Rule(ruleExpr.invertSides(), ruleResultExpr));
             }
         }
     }

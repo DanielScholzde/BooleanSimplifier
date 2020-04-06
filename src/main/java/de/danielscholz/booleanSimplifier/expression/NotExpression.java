@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public class NotExpression extends Expression {
 
-    static final int PRECENDENCE = 1;
+    static final int PRECEDENCE = 1;
 
     private final Expression expression;
 
@@ -18,7 +18,7 @@ public class NotExpression extends Expression {
     }
 
     @Override
-    protected Expression applyToChilds(Rule rule) {
+    protected Expression applyToChildren(Rule rule) {
         Expression newExpression = expression.apply(rule);
         if (newExpression != expression) {
             return new NotExpression(addNecessaryParenthesisIntern(newExpression, 1));
@@ -27,13 +27,13 @@ public class NotExpression extends Expression {
     }
 
     @Override
-    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp) {
+    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch) {
         Map<String, Expression> vars = matchAtomicVar(rule, invert);
         if (vars != null) return vars;
 
         if (rule.getClass() == getClass()) {
             NotExpression notExprRule = (NotExpression) rule;
-            return expression.matches(notExprRule.expression, invert, matchUnsharp);
+            return expression.matches(notExprRule.expression, invert, fuzzyMatch);
         }
         return null;
     }
@@ -44,8 +44,8 @@ public class NotExpression extends Expression {
     }
 
     @Override
-    public int getPrecendence() {
-        return PRECENDENCE;
+    public int getPrecedence() {
+        return PRECEDENCE;
     }
 
     @Override
@@ -53,8 +53,8 @@ public class NotExpression extends Expression {
         return 1 + expression.getComplexityIntern();
     }
 
-    public Expression removeUnnecessaryParenthesis() {
-        Expression expr = removeUnnecessaryParenthesisIntern(expression, 1);
+    public Expression removeUnnecessaryParentheses() {
+        Expression expr = removeUnnecessaryParenthesesIntern(expression, 1);
         if (expr != expression) {
             return new NotExpression(expr);
         }

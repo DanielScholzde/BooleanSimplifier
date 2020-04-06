@@ -20,7 +20,7 @@ public class TernaryExpression extends Expression {
     }
 
     @Override
-    protected Expression applyToChilds(Rule rule) {
+    protected Expression applyToChildren(Rule rule) {
         Expression newCond = cond.apply(rule);
         Expression newCondTrue = condTrue.apply(rule);
         Expression newCondFalse = condFalse.apply(rule);
@@ -33,20 +33,20 @@ public class TernaryExpression extends Expression {
     }
 
     @Override
-    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp) {
+    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch) {
         Map<String, Expression> vars = matchAtomicVar(rule, invert);
         if (vars != null) return vars;
 
         if (rule.getClass() == getClass()) {
             TernaryExpression ternaryExprRule = (TernaryExpression) rule;
-            Map<String, Expression> varsCond = cond.matches(ternaryExprRule.cond, invert, matchUnsharp);
+            Map<String, Expression> varsCond = cond.matches(ternaryExprRule.cond, invert, fuzzyMatch);
             if (varsCond == null) return null;
-            Map<String, Expression> varsCondTrue = condTrue.matches(ternaryExprRule.condTrue, invert, matchUnsharp);
+            Map<String, Expression> varsCondTrue = condTrue.matches(ternaryExprRule.condTrue, invert, fuzzyMatch);
             if (varsCondTrue == null) return null;
-            Map<String, Expression> varsCondFalse = condFalse.matches(ternaryExprRule.condFalse, invert, matchUnsharp);
+            Map<String, Expression> varsCondFalse = condFalse.matches(ternaryExprRule.condFalse, invert, fuzzyMatch);
             return joinVars(varsCond, joinVars(varsCondTrue, varsCondFalse));
-        } else if (matchUnsharp && rule.getClass() == NotExpression.class) {
-            return matches(((NotExpression) rule).getChild(), true, matchUnsharp);
+        } else if (fuzzyMatch && rule.getClass() == NotExpression.class) {
+            return matches(((NotExpression) rule).getChild(), true, fuzzyMatch);
         }
         return null;
     }
@@ -59,7 +59,7 @@ public class TernaryExpression extends Expression {
     }
 
     @Override
-    public int getPrecendence() {
+    public int getPrecedence() {
         return 12;
     }
 
@@ -72,10 +72,10 @@ public class TernaryExpression extends Expression {
         return 1 + add + cond.getComplexityIntern() + condTrue.getComplexityIntern() + condFalse.getComplexityIntern();
     }
 
-    public Expression removeUnnecessaryParenthesis() {
-        Expression cond1 = removeUnnecessaryParenthesisIntern(cond, 1);
-        Expression condTrue1 = removeUnnecessaryParenthesisIntern(condTrue, 2);
-        Expression condFalse1 = removeUnnecessaryParenthesisIntern(condFalse, 3);
+    public Expression removeUnnecessaryParentheses() {
+        Expression cond1 = removeUnnecessaryParenthesesIntern(cond, 1);
+        Expression condTrue1 = removeUnnecessaryParenthesesIntern(condTrue, 2);
+        Expression condFalse1 = removeUnnecessaryParenthesesIntern(condFalse, 3);
         if (cond1 != cond || condTrue1 != condTrue || condFalse1 != condFalse) {
             return new TernaryExpression(cond1, condTrue1, condFalse1);
         }

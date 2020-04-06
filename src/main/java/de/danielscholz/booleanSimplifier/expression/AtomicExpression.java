@@ -17,12 +17,12 @@ public class AtomicExpression extends Expression {
     }
 
     @Override
-    protected Expression applyToChilds(Rule rule) {
+    protected Expression applyToChildren(Rule rule) {
         return this;
     }
 
     @Override
-    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp) {
+    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch) {
         Map<String, Expression> vars = matchAtomicVar(rule, invert);
         if (vars != null) return vars;
 
@@ -31,8 +31,8 @@ public class AtomicExpression extends Expression {
             if (atomicExprRule.str.equals(str)) {
                 return new HashMap<>();
             }
-        } else if (matchUnsharp && rule.getClass() == NotExpression.class) {
-            return matches(((NotExpression) rule).getChild(), true, matchUnsharp);
+        } else if (fuzzyMatch && rule.getClass() == NotExpression.class) {
+            return matches(((NotExpression) rule).getChild(), true, fuzzyMatch);
         }
         return null;
     }
@@ -46,7 +46,7 @@ public class AtomicExpression extends Expression {
     }
 
     @Override
-    public Expression removeUnnecessaryParenthesis() {
+    public Expression removeUnnecessaryParentheses() {
         return this;
     }
 
@@ -65,7 +65,7 @@ public class AtomicExpression extends Expression {
     }
 
     @Override
-    public int getPrecendence() {
+    public int getPrecedence() {
         return -1;
     }
 

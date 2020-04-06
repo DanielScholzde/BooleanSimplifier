@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public class ParenthesisExpression extends Expression {
 
-    static final int PRECENDENCE = 0;
+    static final int PRECEDENCE = 0;
 
     private final Expression expression;
 
@@ -18,7 +18,7 @@ public class ParenthesisExpression extends Expression {
     }
 
     @Override
-    protected Expression applyToChilds(Rule rule) {
+    protected Expression applyToChildren(Rule rule) {
         Expression newExpression = expression.apply(rule);
         if (newExpression != expression) {
             return new ParenthesisExpression(newExpression);
@@ -27,15 +27,15 @@ public class ParenthesisExpression extends Expression {
     }
 
     @Override
-    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean matchUnsharp) {
+    protected Map<String, Expression> matches(Expression rule, boolean invert, boolean fuzzyMatch) {
         Map<String, Expression> vars = matchAtomicVar(rule, invert);
         if (vars != null) return vars;
 
         if (rule.getClass() == getClass()) {
             ParenthesisExpression groupExprRule = (ParenthesisExpression) rule;
-            return expression.matches(groupExprRule.expression, invert, matchUnsharp);
-        } else if (matchUnsharp && rule.getClass() == NotExpression.class) {
-            return matches(((NotExpression) rule).getChild(), true, matchUnsharp);
+            return expression.matches(groupExprRule.expression, invert, fuzzyMatch);
+        } else if (fuzzyMatch && rule.getClass() == NotExpression.class) {
+            return matches(((NotExpression) rule).getChild(), true, fuzzyMatch);
         }
         return null;
     }
@@ -46,8 +46,8 @@ public class ParenthesisExpression extends Expression {
     }
 
     @Override
-    public int getPrecendence() {
-        return PRECENDENCE;
+    public int getPrecedence() {
+        return PRECEDENCE;
     }
 
     @Override
@@ -59,8 +59,8 @@ public class ParenthesisExpression extends Expression {
         return expression;
     }
 
-    public Expression removeUnnecessaryParenthesis() {
-        Expression expr = removeUnnecessaryParenthesisIntern(expression, 1);
+    public Expression removeUnnecessaryParentheses() {
+        Expression expr = removeUnnecessaryParenthesesIntern(expression, 1);
         if (expr != expression) {
             return new ParenthesisExpression(expr);
         }
