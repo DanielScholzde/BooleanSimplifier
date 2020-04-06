@@ -113,8 +113,8 @@ public class BooleanExpressionSimplifier {
     }
 
     static Expression parse(String expression) {
-        ANTLRInputStream input = new ANTLRInputStream(expression); // create a CharStream that reads from standard input
-        BooleanGrammarLexer lexer = new BooleanGrammarLexer(input); // create a lexer that feeds off of input CharStream
+        CodePointCharStream stream = CharStreams.fromString(expression);
+        BooleanGrammarLexer lexer = new BooleanGrammarLexer(stream); // create a lexer that feeds off of input CharStream
         CommonTokenStream tokens = new CommonTokenStream(lexer); // create a buffer of tokens pulled from the lexer
         BooleanGrammarParser parser = new BooleanGrammarParser(tokens); // create a parser that feeds off the tokens buffer
         parser.addErrorListener(new ANTLRErrorListener() {
